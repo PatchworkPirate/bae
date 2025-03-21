@@ -1,181 +1,170 @@
 <script lang="ts">
-	import { twMerge } from 'tailwind-merge';
-	import { DropdownMenu } from 'bits-ui';
+	import Button from '$lib/Button.svelte';
+	import { buttonStore, type ButtonObject } from '$lib/buttonStore.svelte';
+	import ScreenButton from '$lib/ScreenButton.svelte';
+	import { Dialog } from 'bits-ui';
 
-	let settingsOpen: boolean = $state(false);
-	let connectionState: string = $state('disconnected');
+	let creatingButton: ButtonObject = $state(buttonStore.createButton());
 
-	let websocketAddress: string = $state('localhost');
-	let websocketPort: number = $state(55123);
-	let ws: undefined | WebSocket = $state();
+	let addButtonDialogOpen: boolean = $state(false);
+	let edit: boolean = $state(false);
 
-	type Button = {
-		name: string;
-		fn: string;
-		args: Array<string>;
-	};
-	let buttons: Array<Button> = $state([]);
+	function activateEditWindow(id: string) {
+		const foundButton = buttonStore.buttons.find((btn) => btn.id === id);
 
-	let createButtonName: string = $state('');
-	let createButtonFunction: string = $state('');
-	let createButtonArgs: Array<string> = $state([]);
+		if (!foundButton) {
+			throw new Error("Couldn't find button with id: " + id);
+		}
 
-	function createWebsocket(): WebSocket {
-		const createdWS = new WebSocket(
-			'ws://' + websocketAddress + ':' + String(websocketPort),
-			'json'
-		);
-
-		createdWS.onopen = (ev: Event) => {
-			console.log('created', ev);
-			connectionState = 'connected';
-		};
-
-		createdWS.onmessage = (ev: MessageEvent) => {
-			console.log('message', ev);
-		};
-
-		createdWS.onerror = (ev: Event) => {
-			console.log('error', ev);
-			connectionState = 'error';
-		};
-
-		createdWS.onclose = (ev: CloseEvent) => {
-			console.log('closed', ev);
-			connectionState = 'disconnected';
-			ws = undefined;
-		};
-
-		return createdWS;
-	}
-
-	function sendFunction(btn: Button) {
-		if (!ws) throw new Error('No Websocket Configured');
-
-		ws.send(
-			JSON.stringify({
-				head: {
-					id: 'InfSet'
-				},
-				body: {
-					fn: btn.fn,
-					args: btn.args
-				}
-			})
-		);
+		creatingButton = foundButton;
+		addButtonDialogOpen = true;
 	}
 </script>
 
-<nav class="flex w-full flex-row items-center justify-between p-2 bg-sky-200">
-	<button class="rounded border" type="button" onclick={() => (settingsOpen = !settingsOpen)}
-		>Settings</button
+<nav class="flex flex-row gap-10 bg-slate-300 p-4 items-center">
+	<Dialog.Root
+		bind:open={addButtonDialogOpen}
+		onOpenChange={(open: boolean) => {
+			if (open) {
+				creatingButton = buttonStore.createButton();
+			}
+		}}
 	>
-
-	{#if settingsOpen}
-	<div>
-		<DropdownMenu.Root>
-			<DropdownMenu.Trigger class="border rounded-lg p-2">Add Button</DropdownMenu.Trigger>
-			<DropdownMenu.Content class="flex flex-col gap-4 border p-4 bg-white rounded">
-				<div class="flex flex-col">
-					<label for="buttonName">Button Name</label>
-					<input type="text" name="buttonName" id="buttonName" bind:value={createButtonName} />
+		<Dialog.Trigger>Add Button</Dialog.Trigger>
+		<Dialog.Portal>
+			<Dialog.Content
+				class="absolute top-20 translate-x-[50%] flex flex-row items-center gap-6 p-10 rounded-lg border mx-auto w-1/2 bg-white z-50"
+			>
+				<div class="flex flex-col gap-6 items-start align-middle">
+					<div>
+						<label for="buttonId">Button ID</label>
+						<input type="text" name="buttonId" id="buttonId" disabled value={creatingButton.id} />
+					</div>
+					<div>
+						<label for="buttonName">Button Name</label>
+						<input type="text" name="buttonName" id="buttonName" bind:value={creatingButton.name} />
+					</div>
+					<div>
+						<label for="buttonDescription">Button Description</label>
+						<input type="text" name="buttonDescription" id="buttonDescription" />
+					</div>
+					<div class="grid grid-cols-3 grid-rows-2 grid-flow-col">
+						<label for="pageNumber">Compaion Page</label>
+						<input
+							type="number"
+							name="pageNumber"
+							id="pageNumber"
+							bind:value={creatingButton.triggers.page}
+						/>
+						<label for="bankNumber">Button Row</label>
+						<input
+							type="number"
+							name="bankNumber"
+							id="bankNumber"
+							bind:value={creatingButton.triggers.row}
+						/>
+						<label for="buttonNumber">Button Column</label>
+						<input
+							type="number"
+							name="buttonNumber"
+							id="buttonNumber"
+							bind:value={creatingButton.triggers.column}
+						/>
+					</div>
+					<div>
+						<label for="buttonToggle">Toggle?</label>
+						<input
+							type="checkbox"
+							name="buttonToggle"
+							id="buttonToggle"
+							bind:checked={creatingButton.toggle}
+						/>
+					</div>
+					<div>
+						<label for="buttonColour">Button Colour</label>
+						<input
+							type="color"
+							name="buttonColour"
+							id="buttonColour"
+							bind:value={creatingButton.colour}
+						/>
+					</div>
+					<div>
+						<label for="buttonSize">Button Size</label>
+						<input
+							type="number"
+							name="buttonSize"
+							id="buttonSize"
+							bind:value={creatingButton.size}
+						/>
+					</div>
+					<div>
+						{#if !edit}
+							<button
+								type="button"
+								onclick={() => {
+									buttonStore.addButton(creatingButton);
+									addButtonDialogOpen = false;
+								}}>Add</button
+							>
+						{:else}
+							<button
+								type="button"
+								onclick={() => {
+									addButtonDialogOpen = false;
+								}}>Close</button
+							>
+						{/if}
+					</div>
 				</div>
+				<Button edit={false} {...creatingButton} {activateEditWindow}>{creatingButton.name}</Button>
+			</Dialog.Content>
+		</Dialog.Portal>
+	</Dialog.Root>
 
-				<div class="flex flex-col">
-					<label for="buttonFunction">Function</label>
-					<input
-						type="text"
-						name="buttonFunction"
-						id="buttonFunction"
-						bind:value={createButtonFunction}
-					/>
-				</div>
-				<div class="flex flex-col gap-2">
-					<label for="buttonArgs">Args</label>
-					{#each createButtonArgs as buttonArg, index}
-						<input type="text" name="createButtonArg" id={"createButtonArg" + String(index)} bind:value={createButtonArgs[index]}>
-						
-					{/each}
-					<button class="p-1" type="button" onclick={() => {
-						createButtonArgs.push('')
-					}}>Add Arg</button>
-				</div>
-				<button
-					type="button"
-					onclick={() => {
-						buttons.push({
-							name: String(createButtonName),
-							fn: createButtonFunction,
-							args: createButtonArgs
-						});
-
-						createButtonName = '';
-						createButtonFunction = '';
-						createButtonArgs = [];
-					}}>Add Button</button
-				>
-			</DropdownMenu.Content>
-		</DropdownMenu.Root>
-		<button>Load</button>
-		<button>Save</button>
+	<div class="*:p-2">
+		<label for="editActive">Edit</label>
+		<input type="checkbox" name="editActive" id="editActive" bind:checked={edit} />
 	</div>
 
-		<div>
-			<label for="wsAddress">IP Address:</label>
-			<input type="text" name="wsAddress" id="wsAddress" bind:value={websocketAddress} />
-		</div>
-
-		<div>
-			<label for="wsPort">Port:</label>
-			<input type="number" name="wsPort" id="wsPort" bind:value={websocketPort} />
-		</div>
-
-		<button
-			type="button"
-			onclick={() => {
-				if (!ws) {
-					ws = createWebsocket();
-				} else {
-					ws.close();
-				}
-			}}>Connect / Disconnect</button
-		>
-	{/if}
-
-	<p
-		class={twMerge(
-			'rounded-full p-2',
-			connectionState === 'connected' && 'bg-emerald-500 text-white',
-			connectionState === 'error' && 'bg-rose-500 text-white',
-			connectionState === 'disconnected' && 'bg-slate-700 text-white',
-		)}
-	>
-		{connectionState}
-	</p>
+	<div class="*:p-2">
+		<label for="ipAddress">Companion IP</label>
+		<input
+			class="rounded"
+			type="text"
+			name="ipAddress"
+			id="ipAddress"
+			bind:value={buttonStore.ipAddress}
+		/>
+	</div>
+	<div class="*:p-2">
+		<label for="portNumber">Port Number</label>
+		<input
+			class="rounded"
+			type="number"
+			name="portNumber"
+			id="portNumber"
+			bind:value={buttonStore.port}
+		/>
+	</div>
 </nav>
 
-<main class="p-10">
-{#each buttons as button}
-	<button
-		class="h-48 w-48 text-center disabled:opacity-50 hover:bg-slate-300"
-		type="button"
-		disabled={connectionState !== 'connected'}
-		onclick={() => sendFunction(button)}>{button.name}</button
-	>
-{/each}
+<main class="flex flex-row">
+	<div class="w-1/2 relative aspect-video">
+		<div class="absolute top-0 left-0 w-full h-full bg-emerald-500"></div>
+		<div class="grid grid-cols-2 grid-rows-2 absolute top-0 left-0 w-full h-full z-20">
+			{#each buttonStore.buttons as button, index}
+				{#if index < 4}
+					<ScreenButton {...button} {edit} {activateEditWindow}>{button.name}</ScreenButton>
+				{/if}
+			{/each}
+		</div>
+	</div>
+	<aside id="companionContainer" class="flex flex-row gap-2 w-1/2">
+		{#each buttonStore.buttons as button, index}
+			{#if index > 3}
+				<Button {...button} {edit} {activateEditWindow}>{button.name}</Button>
+			{/if}
+		{/each}
+	</aside>
 </main>
-
-<style>
-	input {
-		border: solid 1px gray;
-		border-radius: 5px;
-		box-shadow: inset 1em gray;
-		padding: 0.5em;
-	}
-
-	button {
-		border: solid 1px gray;
-		border-radius: 5px;
-		padding: 0.5em;
-	}
-</style>
