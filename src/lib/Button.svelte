@@ -60,7 +60,7 @@
 	}}
 	role="button"
 	tabindex="-1"
-	class="relative w-full h-full flex flex-col items-center text-center justify-evenly border rounded-lg cursor-pointer"
+	class={["relative w-full h-full flex flex-col items-center text-center justify-evenly border rounded-lg cursor-pointer", edit && 'cursor-move']}
 	style={`width: ${size}px; height: ${size}px`}
 >
 	{#if edit}
