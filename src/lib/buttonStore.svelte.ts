@@ -22,12 +22,17 @@ class ButtonStore {
 	ipAddress: string = $state('localhost');
 	port: number = $state(8888);
 
-	constructor() {}
+	constructor() {
+		this.buttons.push(this.createButton(''));
+		this.buttons.push(this.createButton(''));
+		this.buttons.push(this.createButton(''));
+		this.buttons.push(this.createButton(''));
+	}
 
-	createButton(): ButtonObject {
+	createButton(name?: string): ButtonObject {
 		const newButton: ButtonObject = {
 			id: v4(),
-			name: 'Button ' + String(this.buttons.length + 1),
+			name: name ?? 'Button ' + String(this.buttons.length - 3),
 			toggle: false,
 			triggers: {
 				page: 1,
@@ -46,7 +51,16 @@ class ButtonStore {
 		this.buttons.push(buttonObject);
 	}
 
-	removeButton(id: string) {}
+	removeButton(id?: string) {
+		if (id) {
+			const index = this.buttons.findIndex((btn) => btn.id === id);
+			if (index !== -1) {
+				this.buttons.splice(index, 1);
+			}
+		} else {
+			this.buttons.pop();
+		}
+	}
 
 	async activateButton(id: string) {
 		const activatedButton = this.buttons.find((btn) => {

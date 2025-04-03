@@ -10,7 +10,7 @@
 		colour,
 		size,
 		edit,
-		activateEditWindow
+		activateEditWindow,
 	}: {
 		id: string;
 		name: string;
@@ -60,7 +60,7 @@
 	}}
 	role="button"
 	tabindex="-1"
-	class="relative flex flex-col items-center text-center justify-evenly border rounded-lg cursor-pointer"
+	class="relative w-full h-full flex flex-col items-center text-center justify-evenly border rounded-lg cursor-pointer"
 	style={`width: ${size}px; height: ${size}px`}
 >
 	{#if edit}
@@ -68,9 +68,10 @@
 			activateEditWindow(id)
 		}} />
 	{/if}
+	
 	<svg
 		viewBox={`0 0 ${size} ${size}`}
-		class="absolute top-0 left-0 -z-10 rounded-lg w-full h-full"
+		class="absolute top-0 left-0 -z-10 rounded-lg w-full h-full "
 		height={size}
 		width={size}
 		fill="none"
